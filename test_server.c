@@ -79,6 +79,11 @@ void accept_cb(int fd, short events, void *arg)
 	{
 		perror("accept error");
 	}
+	if(lib_set_nonblock(listenserv->sockfd) < 0)
+	{
+		perror("set nonblock error");
+		return;
+	}
     printf("new conneciotn [%s:%d]\n", inet_ntoa(cin.sin_addr), ntohs(cin.sin_port));
 	start_thrd(clifd);
 }

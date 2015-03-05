@@ -19,15 +19,6 @@ struct st_listenserv
 	struct event_base *base;
 };
 
-struct st_connserv
-{
-	int clifd;
-	struct event_base *base;
-	struct event *ev_read;
-	struct event *ev_write;
-	char buf[1024];
-};
-
 struct st_thrd_work
 {
 	int clifd;
@@ -45,8 +36,8 @@ struct st_thrd_work *st_thrd;
 void initsocket(struct st_listenserv *listenserv);
 void accept_cb(int fd, short events, void *arg);
 void send_cb(int fd, short events, void *arg);
-void release_read(struct st_thrd_work *connserv);
-void release_write(struct st_thrd_work *connserv);
+void release_read(struct st_thrd_work *thrd_work);
+void release_write(struct st_thrd_work *thrd_work);
 void thrd_work_cb(int fd, short events, void *arg);
 void thrd_work(struct st_thrd_work *st_work);
 void thrd_work_process(void *arg);
@@ -54,9 +45,8 @@ void thrd_work_process(void *arg);
 int main(int argc, char *argv[])
 {
 	int i=0;
-	int fd[2];
 	sigset(SIGPIPE, SIG_IGN);
-	if(argc < 1)
+	if(argc < 3)
 	{
 		perror("input server  port");
 		return -1;
@@ -67,11 +57,11 @@ int main(int argc, char *argv[])
 	initsocket(&listenserv);
     //创建线程池
 	st_thrd = calloc(THRD_NUM, sizeof(struct st_thrd_work));
-	for(i=0;i<THRD_NUM; ++i)
+	for(i=0; i<THRD_NUM; ++i)
 	{
 		st_thrd[i].base = event_base_new();
 	}
-	for(i=0;i<THRD_NUM;++i)
+	for(i=0; i<THRD_NUM; ++i)
 	{
 		thrd_work(&st_thrd[i]);
 	}
@@ -136,7 +126,6 @@ void thrd_work_cb(int fd, short events, void *arg)
 	int recvlen = 0;
 	if( thrd_work != NULL)
 	{
-		
    		recvlen = lib_tcp_recv(thrd_work->clifd, thrd_work->buf,1024, -1);
 		if(recvlen < 0)
 		{
@@ -166,6 +155,7 @@ void thrd_work_process(void *arg)
 			break;
 		}
 	} while (1);
+   
 	event_base_dispatch(st_work->base);
     event_base_free(st_work->base);
 }
@@ -182,12 +172,14 @@ void thrd_work(struct st_thrd_work *st_work)
 void send_cb(int fd, short events, void *arg)
 {
 	struct st_thrd_work *thrd_work = (struct st_thrd_work*)arg;
+	if(thrd_work->clifd <= 0)
+		return;
 	int sendlen = lib_tcp_send(thrd_work->clifd, thrd_work->buf, 1024);
 	if(sendlen < 0)
 	{
 		perror("send error");		
-		// close(thrd_work->clifd);
-		// release_write(thrd_work);
+		close(thrd_work->clifd);
+		release_write(thrd_work);
 	}
 	memset(thrd_work->buf, 0, sizeof(thrd_work->buf));
 }
@@ -198,11 +190,11 @@ void release_read(struct st_thrd_work *thrd_work)
 	{
 		return;
 	}
-	if(NULL != thrd_work->ev_read && NULL != thrd_work->ev_write)
+	if(NULL != thrd_work->ev_read)
 	{
 		event_del(thrd_work->ev_read);
 		event_free(thrd_work->ev_read);
-		event_free(thrd_work->ev_write);
+
 	}
 }
 
@@ -212,6 +204,6 @@ void release_write(struct st_thrd_work *thrd_work)
 		return;
 	if(thrd_work->ev_write != NULL)
 	{
-		// event_free(thrd_work->ev_write);
+		 event_free(thrd_work->ev_write);
 	}
 }

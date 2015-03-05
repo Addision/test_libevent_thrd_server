@@ -32,6 +32,8 @@ void read_cb(int fd, short events, void *arg);
 void send_cb(int fd, short events, void *arg);
 void start_thrd(int fd);
 void thrd_readwrite(int sockfd);
+void release_read(struct st_connserv *connserv);
+void release_write(struct st_connserv *connserv);
 
 int main(int argc, char *argv[])
 {
@@ -107,6 +109,7 @@ void read_cb(int fd, short events, void *arg)
 	{
 		perror("recv error");
 		close(conn->clifd);
+		release_read(conn);
 	}
 	printf("recv data:%s\n", conn->buf);
 	
@@ -121,6 +124,33 @@ void send_cb(int fd, short events, void *arg)
 	if(sendlen < 0)
 	{
 		perror("send error");
+		close(conn->clifd);
+		release_write(conn);
 	}
 }
 
+void release_read(struct st_connserv *connserv)
+{
+	if(connserv == NULL)
+	{
+		return;
+	}
+	event_del(connserv->ev_read);
+	event_base_loopexit(connserv->base, NULL);
+	if(NULL != connserv->ev_read){
+		free(connserv->ev_read);
+	}
+	event_base_free(connserv->base);
+	// destroy_sock_ev_write(sock_ev_struct->sock_ev_write_struct);
+	free(connserv);
+	
+}
+
+void release_write(struct st_connserv *connserv)
+{
+	if(connserv != NULL)
+	{
+		free(connserv->ev_write);
+		free(connserv);
+	}
+}

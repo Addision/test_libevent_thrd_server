@@ -118,7 +118,7 @@ void read_cb(int fd, short events, void *arg)
 	}
 	printf("recv data:%s\n", conn->buf);
 	
-	conn->ev_write = event_new(conn->base, conn->clifd, EV_WRITE|EV_PERSIST, send_cb, conn);
+	conn->ev_write = event_new(conn->base, conn->clifd, EV_WRITE, send_cb, conn);
 	event_add(conn->ev_write, NULL);
 }
 
@@ -146,7 +146,6 @@ void release_read(struct st_connserv *connserv)
 		free(connserv->ev_read);
 	}
 	event_base_free(connserv->base);
-	// destroy_sock_ev_write(sock_ev_struct->sock_ev_write_struct);
 	free(connserv);
 	
 }
@@ -155,6 +154,7 @@ void release_write(struct st_connserv *connserv)
 {
 	if(connserv != NULL)
 	{
+		event_del(connserv->ev_write);
 		free(connserv->ev_write);
 		free(connserv);
 	}

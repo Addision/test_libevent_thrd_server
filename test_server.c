@@ -79,7 +79,7 @@ void accept_cb(int fd, short events, void *arg)
 	{
 		perror("accept error");
 	}
-	if(lib_set_nonblock(listenserv->sockfd) < 0)
+	if(lib_set_nonblock(clifd) < 0)
 	{
 		perror("set nonblock error");
 		return;

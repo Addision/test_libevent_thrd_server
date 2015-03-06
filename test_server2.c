@@ -32,19 +32,20 @@ struct st_thrd_work
 
 int last_active = 0;
 struct st_thrd_work *st_thrd;
-
+int cnt = 0;
 void initsocket(struct st_listenserv *listenserv);
 void accept_cb(int fd, short events, void *arg);
 void send_cb(int fd, short events, void *arg);
 void release_read(struct st_thrd_work *thrd_work);
 void release_write(struct st_thrd_work *thrd_work);
 void thrd_work_cb(int fd, short events, void *arg);
-void thrd_work(struct st_thrd_work *st_work);
+void thrd_work(struct st_thrd_work *thrd_work);
 void thrd_work_process(void *arg);
 
 int main(int argc, char *argv[])
 {
 	int i=0;
+	
 	sigset(SIGPIPE, SIG_IGN);
 	if(argc < 3)
 	{
@@ -103,17 +104,18 @@ void accept_cb(int fd, short events, void *arg)
 		perror("set nonblock error");
 		return;
 	}
-    printf("new conneciotn [%s:%d]\n", inet_ntoa(cin.sin_addr), ntohs(cin.sin_port));
-
+	cnt++;
+    printf("new conneciotn [%s:%d] %d\n", inet_ntoa(cin.sin_addr), ntohs(cin.sin_port), cnt);
+ 
 	int tid = (++last_active) % THRD_NUM;
 	struct st_thrd_work *thrd = st_thrd + tid;
 	last_active = tid;
 	thrd->clifd = clifd;
 	printf("{%lu : %d}\n", thrd->pid, thrd->clifd);
     
-	thrd->ev_read = event_new(thrd->base, thrd->clifd, EV_READ|EV_PERSIST, thrd_work_cb, thrd);
-	if(thrd->ev_read != NULL)
-	    event_add(thrd->ev_read, NULL);
+	thrd->ev_read = event_new(thrd->base, thrd->clifd, EV_READ|EV_PERSIST|EV_TIMEOUT, thrd_work_cb, thrd);
+
+	event_add(thrd->ev_read, NULL);
 	
     if(last_active > 1000)
 		last_active = 0;
@@ -150,13 +152,15 @@ void thrd_work_process(void *arg)
 	printf("====%lu====\n", st_work->pid);
 	do
 	{
-		if(st_work->clifd > 0)
+		if(st_work->ev_read != NULL)
 		{
-			break;
+			event_base_dispatch(st_work->base);
 		}
-	} while (1);
-   
-	event_base_dispatch(st_work->base);
+		else
+			sleep(1);
+		
+   } while (1);
+    
     event_base_free(st_work->base);
 }
 
@@ -178,7 +182,7 @@ void send_cb(int fd, short events, void *arg)
 	if(sendlen < 0)
 	{
 		perror("send error");		
-		close(thrd_work->clifd);
+	    close(thrd_work->clifd);
 		release_write(thrd_work);
 	}
 	memset(thrd_work->buf, 0, sizeof(thrd_work->buf));

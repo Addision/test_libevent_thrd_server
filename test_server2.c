@@ -1,20 +1,21 @@
 #include<event.h>  
 #include<event2/util.h>
 #include<signal.h>
+#include <string.h>
+#include <stdlib.h>
 #include "lib_net.h"
 #include "lib_thread.h"
 #include "lib_public.h"
-
-#define BACKLOG 10
-#define MAX_EVENTS 500
-#define THRD_NUM 5
-
-char ip[24];
-short port;
+#include "lib_file.h"
 
 struct st_listenserv
 {
 	int sockfd;
+	char ip[24];
+	short port;
+	int backlog;
+	int maxevents;
+	int thrdnum;
 	struct event *ev_listen;
 	struct event_base *base;
 };
@@ -41,28 +42,25 @@ void release_write(struct st_thrd_work *thrd_work);
 void thrd_work_cb(int fd, short events, void *arg);
 void thrd_work(struct st_thrd_work *thrd_work);
 void thrd_work_process(void *arg);
+void initst_listenserv(struct st_listenserv *listenserv);
 
 int main(int argc, char *argv[])
 {
 	int i=0;
-	
+	char tmpbuf[30];
 	sigset(SIGPIPE, SIG_IGN);
-	if(argc < 3)
-	{
-		perror("input server  port");
-		return -1;
-	}
-	memcpy(ip, argv[1], 24);
-	port = atoi(argv[2]);
+
 	struct st_listenserv listenserv;
+	memset(&listenserv, 0 ,sizeof(listenserv));
+	initst_listenserv(&listenserv);
 	initsocket(&listenserv);
     //创建线程池
-	st_thrd = calloc(THRD_NUM, sizeof(struct st_thrd_work));
-	for(i=0; i<THRD_NUM; ++i)
+	st_thrd = calloc(listenserv.thrdnum, sizeof(struct st_thrd_work));
+	for(i=0; i<listenserv.thrdnum; ++i)
 	{
 		st_thrd[i].base = event_base_new();
 	}
-	for(i=0; i<THRD_NUM; ++i)
+	for(i=0; i<listenserv.thrdnum; ++i)
 	{
 		thrd_work(&st_thrd[i]);
 	}
@@ -76,7 +74,7 @@ int main(int argc, char *argv[])
 
 void initsocket(struct st_listenserv *listenserv)
 {
-	listenserv->sockfd = lib_tcpsrv_init(ip,port);
+	listenserv->sockfd = lib_tcpsrv_init(listenserv->ip,listenserv->port);
 	if(listenserv->sockfd < 0)
 	{
 		perror("server create socket error");
@@ -92,6 +90,8 @@ void initsocket(struct st_listenserv *listenserv)
 
 void accept_cb(int fd, short events, void *arg)
 {
+	printf("server accept\n");
+	struct st_listenserv *listenserv = arg;
 	struct sockaddr_in cin;
 	socklen_t socklen = sizeof(cin);
 	int clifd = lib_tcpsrv_accept(fd, &cin);
@@ -107,7 +107,7 @@ void accept_cb(int fd, short events, void *arg)
 	cnt++;
     printf("new conneciotn [%s:%d] %d\n", inet_ntoa(cin.sin_addr), ntohs(cin.sin_port), cnt);
  
-	int tid = (++last_active) % THRD_NUM;
+	int tid = (++last_active) % listenserv->thrdnum;
 	struct st_thrd_work *thrd = st_thrd + tid;
 	last_active = tid;
 	thrd->clifd = clifd;
@@ -181,7 +181,7 @@ void thrd_work_cb(int fd, short events, void *arg)
 		recvlen = lib_tcp_recv(thrd_work->clifd, thrd_work->buf+20, datalen+2, -1);
 		unsigned short crc = 0;
 		crc = lib_crc_check(thrd_work->buf+2, datalen+18);
-		if(crc != (unsigned char)thrd_work->buf[20 + datalen] * 256 + (unsigned char)thrd_work->buf[21 + datalen])
+		if(crc != (unsigned char)thrd_work->buf[20 + datalen]*256 + (unsigned char)thrd_work->buf[21 + datalen])
 		{
 			perror("crc error");
 			return ;
@@ -262,7 +262,14 @@ void release_write(struct st_thrd_work *thrd_work)
 	}
 }
 
-void unpack(char *pack, char *out)
+void initst_listenserv(struct st_listenserv *listenserv)
 {
-	
+	char tmpbuf[30];
+	memset(tmpbuf, 0, sizeof(tmpbuf));
+	lib_file_readcfg("server.ini","[net]", "ip", listenserv->ip);
+	lib_file_readcfg("server.ini", "[net]", "ip", tmpbuf);
+	listenserv->port = atoi(tmpbuf);
+	memset(tmpbuf, 0, sizeof(tmpbuf));
+	lib_file_readcfg("server.ini","[thread]","num", tmpbuf);
+	listenserv->thrdnum = atoi(tmpbuf);
 }

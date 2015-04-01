@@ -128,18 +128,7 @@ void thrd_work_cb(int fd, short events, void *arg)
 	int recvlen = 0;
 	if( thrd_work != NULL)
 	{
-   		// recvlen = lib_tcp_recv(thrd_work->clifd, thrd_work->buf,1024, -1);
-		// if(recvlen < 0)
-		// {
-		// 	perror("recv error");	
-		// 	close(thrd_work->clifd);
-		// 	release_read(thrd_work);
-		// 	return;
-		// }
-		// printf("recv data:%s\n", thrd_work->buf);
-		// memset(thrd_work->buf, 0, sizeof(thrd_work->buf));
-		
-		memset(thrd_work->buf, 0, sizeof(thrd_work->buf));
+ 		memset(thrd_work->buf, 0, sizeof(thrd_work->buf));
 		while(1)
 		{
 			recvlen = lib_tcp_recv(thrd_work->clifd, thrd_work->buf, 2, -1);
@@ -272,7 +261,6 @@ void initst_listenserv(struct st_listenserv *listenserv)
 	memset(tmpbuf, 0, sizeof(tmpbuf));
 	lib_file_readcfg("server.ini","[thread]","num", tmpbuf);
 	listenserv->thrdnum = atoi(tmpbuf);
-	printf("port %d\n", listenserv->thrdnum);
 	printf("init listenserv ok\n");
 }
 

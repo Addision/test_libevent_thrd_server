@@ -1,9 +1,9 @@
-#include "lib_net.h"
-#include "lib_thread.h"
-#include "lib_public.h"
 #include<event.h>  
 #include<event2/util.h>
 #include<signal.h>
+#include "lib_net.h"
+#include "lib_thread.h"
+#include "lib_public.h"
 
 #define BACKLOG 10
 #define MAX_EVENTS 500
@@ -128,20 +128,70 @@ void thrd_work_cb(int fd, short events, void *arg)
 	int recvlen = 0;
 	if( thrd_work != NULL)
 	{
-   		recvlen = lib_tcp_recv(thrd_work->clifd, thrd_work->buf,1024, -1);
+   		// recvlen = lib_tcp_recv(thrd_work->clifd, thrd_work->buf,1024, -1);
+		// if(recvlen < 0)
+		// {
+		// 	perror("recv error");	
+		// 	close(thrd_work->clifd);
+		// 	release_read(thrd_work);
+		// 	return;
+		// }
+		// printf("recv data:%s\n", thrd_work->buf);
+		// memset(thrd_work->buf, 0, sizeof(thrd_work->buf));
+		
+		memset(thrd_work->buf, 0, sizeof(thrd_work->buf));
+		while(1)
+		{
+			recvlen = lib_tcp_recv(thrd_work->clifd, thrd_work->buf, 2, -1);
+			if((recvlen !=2) || ((unsigned char)thrd_work->buf[0] != 0xFF) || ((unsigned char)thrd_work->buf[1] != 0xFF))
+			{
+				perror("server recv error");
+				close(thrd_work->clifd);
+				release_read(thrd_work);
+				return;
+			}
+			else
+				break;
+		}
+		recvlen = lib_tcp_recv(thrd_work->clifd, thrd_work->buf+2, 18, -1);
+		char addr[6];
+		memcpy(addr, thrd_work->buf+2, 6);
+		printf("source addr %s\n", addr);
+		memset(addr, 0 , sizeof(addr));
+		memcpy(addr, thrd_work->buf+8, 6);
+		printf("destination addr %s\n", addr);
+		int cmd = (unsigned char)thrd_work->buf[14]*256 + (unsigned char)thrd_work->buf[15];
+		switch(cmd)
+		{
+		case 0x0001:
+			printf("success recv cmd\n");
+			
+			break;
+		default:
+			break;
+		}
+		int datalen = (unsigned char)thrd_work->buf[18]*256 + (unsigned char)thrd_work->buf[19];
 		if(recvlen < 0)
 		{
-			perror("recv error");	
+			perror("server recv error");
 			close(thrd_work->clifd);
 			release_read(thrd_work);
 			return;
 		}
-		printf("recv data:%s\n", thrd_work->buf);
-		memset(thrd_work->buf, 0, sizeof(thrd_work->buf));
-		
-		thrd_work->ev_write = event_new(thrd_work->base, thrd_work->clifd, EV_WRITE, send_cb, thrd_work);
-		if(thrd_work->ev_write != NULL)
-		    event_add(thrd_work->ev_write, NULL);
+		recvlen = lib_tcp_recv(thrd_work->clifd, thrd_work->buf+20, datalen+2, -1);
+		unsigned short crc = 0;
+		crc = lib_crc_check(thrd_work->buf+2, datalen+18);
+		if(crc != (unsigned char)thrd_work->buf[20 + datalen] * 256 + (unsigned char)thrd_work->buf[21 + datalen])
+		{
+			perror("crc error");
+			return ;
+		}
+		char datarecv[256];
+		memcpy(datarecv, thrd_work->buf+20,datalen);
+      	printf("recv data %s\n", datarecv);
+		// thrd_work->ev_write = event_new(thrd_work->base, thrd_work->clifd, EV_WRITE, send_cb, thrd_work);
+		// if(thrd_work->ev_write != NULL)
+		//     event_add(thrd_work->ev_write, NULL);
 	}
 
 }
@@ -210,4 +260,9 @@ void release_write(struct st_thrd_work *thrd_work)
 	{
 		 event_free(thrd_work->ev_write);
 	}
+}
+
+void unpack(char *pack, char *out)
+{
+	
 }

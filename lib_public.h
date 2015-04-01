@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <stdarg.h>
 
-int lib_time_now(char *outtime, int flag);
+char* lib_time_now(char *outtime, int flag);
 unsigned short lib_crc_check(unsigned char *start, unsigned int len);
 void lib_pwd(char *filepath, int len);
 void lib_write_log(const char *logpath, char *format,...);

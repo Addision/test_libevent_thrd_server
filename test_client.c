@@ -32,6 +32,7 @@ int main(int argc, char *argv[])
 	their_addr.sin_addr.s_addr = inet_addr(IPADDR);
 	/*  将结构剩下的部分清零*/
 	bzero(&(their_addr.sin_zero),8);
+	printf("ready to connect\n");
 	if(connect(sockfd, (struct sockaddr *)&their_addr, sizeof(struct sockaddr)) == -1)
 	{
 		perror("connect");

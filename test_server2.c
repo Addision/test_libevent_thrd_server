@@ -64,12 +64,11 @@ int main(int argc, char *argv[])
 	{
 		thrd_work(&st_thrd[i]);
 	}
-	
+    
 	listenserv.base = event_base_new();
-	listenserv.ev_listen = event_new(listenserv.base, listenserv.sockfd,EV_READ | EV_PERSIST,accept_cb,NULL);
+	listenserv.ev_listen = event_new(listenserv.base, listenserv.sockfd, EV_READ|EV_PERSIST, (void*)accept_cb, &listenserv);
 	event_add(listenserv.ev_listen, NULL);
 	event_base_dispatch(listenserv.base);
-	
 }
 
 void initsocket(struct st_listenserv *listenserv)
@@ -91,8 +90,7 @@ void initsocket(struct st_listenserv *listenserv)
 void accept_cb(int fd, short events, void *arg)
 {
 	char ti[30];
-	printf("server accept\n");
-	struct st_listenserv *listenserv = arg;
+	struct st_listenserv *listenserv = (struct st_listenserv*)arg;
 	struct sockaddr_in cin;
 	socklen_t socklen = sizeof(cin);
 	int clifd = lib_tcpsrv_accept(fd, &cin);
@@ -266,13 +264,15 @@ void release_write(struct st_thrd_work *thrd_work)
 
 void initst_listenserv(struct st_listenserv *listenserv)
 {
-	char tmpbuf[30];
+	char tmpbuf[50];
 	memset(tmpbuf, 0, sizeof(tmpbuf));
 	lib_file_readcfg("server.ini","[net]", "ip", listenserv->ip);
-	lib_file_readcfg("server.ini", "[net]", "ip", tmpbuf);
+	lib_file_readcfg("server.ini","[net]", "port", tmpbuf);
 	listenserv->port = atoi(tmpbuf);
 	memset(tmpbuf, 0, sizeof(tmpbuf));
 	lib_file_readcfg("server.ini","[thread]","num", tmpbuf);
 	listenserv->thrdnum = atoi(tmpbuf);
+	printf("port %d\n", listenserv->thrdnum);
+	printf("init listenserv ok\n");
 }
 

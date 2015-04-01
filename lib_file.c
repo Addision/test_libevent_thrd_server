@@ -278,38 +278,40 @@ int lib_file_writecfg(const char *strfilepath,const char *strsection, const char
 **********************************/
 int lib_file_readcfg(const char *strfilepath,const char *strsection, const char *strkey, char *value)
 {
-	char tmpbuf[100];
+	char tmpbuf[50];
 	FILE *fp = NULL;
 	if(NULL == strfilepath || strcmp(strfilepath,"") == 0)
 	{
 		return -1;
 	}
 
-	if((fp = fopen(strfilepath, "rb")) == NULL)
+	if((fp = fopen(strfilepath, "rt")) == NULL)
 	{
 		return -2;
 	}
 
 	while(!feof(fp))
 	{
-		fgets(tmpbuf,100,fp);
+		fgets(tmpbuf,50,fp);
 		if(strstr(tmpbuf, strsection) != NULL)
 		{
 
+			memset(tmpbuf, 0 ,sizeof(tmpbuf));
 			while(!feof(fp))
 			{
-				fgets(tmpbuf, 100, fp);
+				fgets(tmpbuf, 50, fp);
   				if(strstr(tmpbuf,strkey) == tmpbuf && (tmpbuf[strlen(strkey)] == '='))
 				{
+					//printf("%s\n",  tmpbuf + strlen(strkey) + 1);
 					strcpy(value, tmpbuf + strlen(strkey) + 1);
+					fclose(fp);
+					return 0;
 				}
-                fclose(fp);
-                return 0;	
 			}
-					
-		}
-	}
-	return -3;
+   		}
+   	}
+	fclose(fp);
+	return -4;
 }
 
 

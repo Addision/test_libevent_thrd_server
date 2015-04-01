@@ -92,12 +92,14 @@ void initsocket(struct st_listenserv *listenserv)
 
 void accept_cb(int fd, short events, void *arg)
 {
+	char ti[30];
 	struct sockaddr_in cin;
 	socklen_t socklen = sizeof(cin);
 	int clifd = lib_tcpsrv_accept(fd, &cin);
 	if(clifd <0)
 	{
 		perror("accept error");
+		exit(-1);
 	}
 	if(lib_set_nonblock(clifd) < 0)
 	{
@@ -105,7 +107,8 @@ void accept_cb(int fd, short events, void *arg)
 		return;
 	}
 	cnt++;
-    printf("new conneciotn [%s:%d] %d\n", inet_ntoa(cin.sin_addr), ntohs(cin.sin_port), cnt);
+    printf("[%s]:new conneciotn [%s:%d] %d\n", lib_time_now(ti, 0),inet_ntoa(cin.sin_addr), ntohs(cin.sin_port), cnt);
+
  
 	int tid = (++last_active) % THRD_NUM;
 	struct st_thrd_work *thrd = st_thrd + tid;
@@ -157,9 +160,9 @@ void thrd_work_process(void *arg)
 			event_base_dispatch(st_work->base);
 		}
 		else
-			sleep(1);
+			usleep(100);
 		
-   } while (1);
+	} while (1);
     
     event_base_free(st_work->base);
 }
@@ -208,6 +211,7 @@ void release_write(struct st_thrd_work *thrd_work)
 		return;
 	if(thrd_work->ev_write != NULL)
 	{
-		 event_free(thrd_work->ev_write);
+		event_free(thrd_work->ev_write);
 	}
 }
+

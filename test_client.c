@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
     struct sockaddr_in their_addr;
 	int i;
 	
-    for(i=0;i<1000;i++)
+    for(i=0;i<4096;i++)
 	{
 		if ((sockfd = socket(AF_INET,SOCK_STREAM, 0)) == -1) 
 		{

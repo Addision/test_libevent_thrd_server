@@ -65,7 +65,7 @@ void lib_exec_cmd(const char *cmd, char *result)
 	fread(result, sizeof(char), strlen(result)-1, fp);
    	pclose(fp);
 }
-void lib_get_record(char *out, char *in, int num, char *esc)
+int lib_get_record(char *out, char *in, int num, char *esc)
 {
 	int i, len = 0, esc_len = 0;
 	char *head, *tail;

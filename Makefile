@@ -16,4 +16,4 @@ test_server2: lib_net.o lib_thread.o lib_public.o lib_file.o test_server2.o
 .c.o:
 		$(CC) -c $< 
 clean:
-		rm *.o test_server2 test_client 
+		rm *.o $(TARGET) 

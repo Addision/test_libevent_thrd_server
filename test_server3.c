@@ -29,15 +29,14 @@ struct st_thrd_work
 	struct event_base *base;
 	struct event *ev_read;
 	struct event *ev_write;
-	char buf[1024];
-	
+	//char buf[1024];	
 };
 
 int last_active = 0;
 struct st_thrd_work *st_thrd;
 int cnt = 0;
 
-static pthread_mutex_t lock;
+//static pthread_mutex_t lock;
 void initsocket(struct st_listenserv *listenserv);
 void accept_cb(int fd, short events, void *arg);
 void send_cb(int fd, short events, void *arg);
@@ -81,7 +80,7 @@ int main(int argc, char *argv[])
 	memset(&listenserv, 0 ,sizeof(listenserv));
 	initst_listenserv(&listenserv);
 	initsocket(&listenserv);
-	pthread_mutex_init(&lock, NULL);
+	//pthread_mutex_init(&lock, NULL);
     //创建线程池
 	st_thrd = calloc(listenserv.thrdnum, sizeof(struct st_thrd_work));
 	for(i=0; i<listenserv.thrdnum; ++i)
@@ -141,11 +140,8 @@ void accept_cb(int fd, short events, void *arg)
 	last_active = tid;
 	thrd->clifd = clifd;
 	printf("{%lu : %d}\n", thrd->pid, thrd->clifd);
-	thrd->ev_read = event_new(thrd->base, thrd->clifd, EV_READ|EV_PERSIST|EV_TIMEOUT, thrd_work_cb, thrd);
-	event_add(thrd->ev_read, 0);
-	
-    if(last_active > 1000)
-		last_active = 0;
+	thrd->ev_read = event_new(thrd->base, thrd->clifd, EV_READ|EV_PERSIST, thrd_work_cb, thrd);
+	event_add(thrd->ev_read, 0);	
 }
  
 void thrd_work_cb(int fd, short events, void *arg)
@@ -155,24 +151,23 @@ void thrd_work_cb(int fd, short events, void *arg)
 	int recvlen = 0;
 	char datarecv[256];
 	int sockfd = fd;
-
+	memset(datarecv, 0, sizeof(datarecv));
 	if( thrd_work != NULL && sockfd > 0)
-	{
- 		memset(datarecv, 0, sizeof(datarecv));
+	{		
 		do
 		{
 			recvlen = lib_tcp_recv(sockfd, datarecv, 9, 0);
 			if(recvlen <= 0)
 			{
-				if(errno == EAGAIN)
-				{
-				    continue;
-				}
+				// if(errno == EAGAIN)
+				// {
+				//     continue;
+				// }
 				perror("recv the data failed\n");			
 				close(sockfd);
 				sockfd = -1;
 				ReleaseEvent(thrd_work->ev_read);
-				return;
+				break;
 			}
 			else if(recvlen > 0)
 			{
@@ -200,7 +195,7 @@ void thrd_work_process(void *arg)
 		{
 			if(event_base_dispatch(st_work->base) == -1)
 			{
-				perror("the work thread error");
+				perror("the work thread dispatch error");
 				break;
 			}
 		}
@@ -221,18 +216,18 @@ void thrd_work(struct st_thrd_work *st_work)
 
 void send_cb(int fd, short events, void *arg)
 {
-	struct st_thrd_work *thrd_work = (struct st_thrd_work*)arg;
-	int sockfd = thrd_work->clifd;
-	if(sockfd <= 0)
-		return;
-	int sendlen = lib_tcp_send(sockfd, thrd_work->buf, 1024);
-	if(sendlen < 0)
-	{
-		release_write(thrd_work);
-		close(sockfd);
-		thrd_work->clifd = -1;
-	}
-	memset(thrd_work->buf, 0, sizeof(thrd_work->buf));
+	// struct st_thrd_work *thrd_work = (struct st_thrd_work*)arg;
+	// int sockfd = thrd_work->clifd;
+	// if(sockfd <= 0)
+	// 	return;
+	// int sendlen = lib_tcp_send(sockfd, thrd_work->buf, 1024);
+	// if(sendlen < 0)
+	// {
+	// 	release_write(thrd_work);
+	// 	close(sockfd);
+	// 	thrd_work->clifd = -1;
+	// }
+	// memset(thrd_work->buf, 0, sizeof(thrd_work->buf));
 }
 
 void release_read(struct st_thrd_work *thrd_work)
@@ -282,5 +277,6 @@ void ReleaseEvent(struct event* ev)
 			perror("event del err\n");
 			return;
 		}
+		printf("release the event ok==================================\n");
 	}
 }

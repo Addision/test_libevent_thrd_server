@@ -75,9 +75,10 @@ int lib_get_record(char *out, char *in, int num, char *esc)
 	
 	for(i = 1; (tail = strstr(head, esc)) && i != num; i++)	head = tail + esc_len;
 	len = tail - head;
-	if (tail == NULL)	return;
+	if (tail == NULL)	return -1;
 	else	memcpy(out, head, len);
 	out[len] = '\0';
+	return 0;
 }
 
 int lib_test_net(const char *ipaddr)

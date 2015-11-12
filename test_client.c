@@ -8,7 +8,7 @@
 #include <sys/socket.h>
 #include "lib_public.h"
 #include "lib_net.h"
-
+#include <sys/time.h>
 #define PORT 9999
 #define IPADDR "127.0.0.1"
 int packet(char *sendbuf, int cmd, int len, char *data);
@@ -19,36 +19,41 @@ int main(int argc, char *argv[])
 	char buf[1024];
     struct sockaddr_in their_addr;
 	int i, ret = 0, slen = 0;
-	
-	if ((sockfd = socket(AF_INET,SOCK_STREAM, 0)) == -1) 
+	int cnt = 0;
+	for(;cnt < 500; ++cnt)
 	{
-		perror("socket");
-		exit(1);
-	}
+		if ((sockfd = socket(AF_INET,SOCK_STREAM, 0)) == -1) 
+		{
+			perror("socket");
+			exit(1);
+		}
 
-	their_addr.sin_family = AF_INET;
-	/*  网络字节顺序，短整型*/
-	their_addr.sin_port = htons(PORT);
-	their_addr.sin_addr.s_addr = inet_addr(IPADDR);
-	/*  将结构剩下的部分清零*/
-	bzero(&(their_addr.sin_zero),8);
-	printf("ready to connect\n");
-	if(connect(sockfd, (struct sockaddr *)&their_addr, sizeof(struct sockaddr)) == -1)
-	{
-		perror("connect");
-		exit(1);
-	}
-	char *senddata = "haha,nihao";
-	slen = strlen(senddata);
-	ret = packet(buf, 0x0001, slen, senddata);
-	ret = lib_tcp_send(sockfd, buf, ret);
-	if(ret > 0)
-	{
-		printf("send ok\n");
-	}
-	else
-	{
-	    printf("send to server error\n");
+		their_addr.sin_family = AF_INET;
+		/*  网络字节顺序，短整型*/
+		their_addr.sin_port = htons(PORT);
+		their_addr.sin_addr.s_addr = inet_addr(IPADDR);
+		/*  将结构剩下的部分清零*/
+		bzero(&(their_addr.sin_zero),8);
+		printf("ready to connect\n");
+		if(connect(sockfd, (struct sockaddr *)&their_addr, sizeof(struct sockaddr)) == -1)
+		{
+			perror("connect");
+			exit(1);
+		}
+		char *senddata = "hahanihao";
+
+		// slen = strlen(senddata);
+		// ret = packet(buf, 0x0001, slen, senddata);
+		ret = lib_tcp_send(sockfd, senddata, strlen(senddata));
+		if(ret > 0)
+		{
+			printf("send ok:%d\n", cnt);
+		}
+		else
+		{
+			printf("send to server error\n");
+		}
+		usleep(100);
 	}
     getchar();
     return 0;

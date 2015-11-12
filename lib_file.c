@@ -1,5 +1,5 @@
 /*
- * Filename:     lib_file.c
+ * Filename: lib_file.c
  *                
  * Version:       0.1
  * Author:        LaiJia <laijia2008@126.com>
@@ -199,73 +199,74 @@ int lib_file_getfilesize(const char *strfilepath)
 **********************************/
 int lib_file_writecfg(const char *strfilepath,const char *strsection, const char *strkey, const char *value)
 {
-	FILE *fp = NULL;
-	char tempbuf[100],secbuf[100];
-	if(NULL == strfilepath || strcmp(strfilepath, "") == 0)
-	{
-		return -1;
-	}
-	else
-	{
-		if(lib_file_isexist(strfilepath) != 0 )
-		{
-			lib_file_create(strfilepath);
+	// FILE *fp = NULL;
+	// char tempbuf[100],secbuf[100];
+	// if(NULL == strfilepath || strcmp(strfilepath, "") == 0)
+	// {
+	// 	return -1;
+	// }
+	// else
+	// {
+	// 	if(lib_file_isexist(strfilepath) != 0 )
+	// 	{
+	// 		lib_file_create(strfilepath);
 
-			if( (fp = fopen(strfilepath,"wb")) == NULL)
-			{
-				fclose(fp);
-			   	fprintf(stderr,"open wrong\n");
-				return -1;
-			}
-  			snprintf(tempbuf,100,"[%s]\n", strsection);
-			fputs(tempbuf,fp);
-			bzero(tempbuf,BUFFER_SIZE);
-	 		sprintf(tempbuf,"%s=%s\n",strkey,value);
-			fputs(tempbuf,fp);
-			fclose(fp);
-			return 0;
-		}//create the configure file
-        else
-		{
-			fp = fopen(strfilepath,"rw+");
-			while(!feof(fp))
-			{
-				fgets(secbuf,100, fp);
-				if(strstr(secbuf,strsection) != NULL) //the section is exist
-				{
-					while(!feof(fp))
-					{
-   						fgets(secbuf,100, fp);
-						if(strstr(secbuf,strkey) != NULL)
-						{
-							return -2; //the key is exist
-						}
-						else
-						{
-							sprintf(tempbuf,"%s=%s\n",strkey,value);
-							fputs(tempbuf,fp);
-							fclose(fp);
-							return 0;   	
-						}
+	// 		if( (fp = fopen(strfilepath,"wb")) == NULL)
+	// 		{
+	// 			fclose(fp);
+	// 		   	fprintf(stderr,"open wrong\n");
+	// 			return -1;
+	// 		}
+  	// 		snprintf(tempbuf,100,"[%s]\n", strsection);
+	// 		fputs(tempbuf,fp);
+	// 		bzero(tempbuf,BUFFER_SIZE);
+	//  		sprintf(tempbuf,"%s=%s\n",strkey,value);
+	// 		fputs(tempbuf,fp);
+	// 		fclose(fp);
+	// 		return 0;
+	// 	}//create the configure file
+    //     else
+	// 	{
+	// 		fp = fopen(strfilepath,"rw+");
+	// 		while(!feof(fp))
+	// 		{
+	// 			fgets(secbuf,100, fp);
+	// 			if(strstr(secbuf,strsection) != NULL) //the section is exist
+	// 			{
+	// 				while(!feof(fp))
+	// 				{
+   	// 					fgets(secbuf,100, fp);
+	// 					if(strstr(secbuf,strkey) != NULL)
+	// 					{
+	// 						return -2; //the key is exist
+	// 					}
+	// 					else
+	// 					{
+	// 						sprintf(tempbuf,"%s=%s\n",strkey,value);
+	// 						fputs(tempbuf,fp);
+	// 						fclose(fp);
+	// 						return 0;   	
+	// 					}
 				
-					}
-				}
-				else
-				{
-					snprintf(tempbuf,100,"[%s]\n", strsection);
-					fputs(tempbuf,fp);
-					bzero(tempbuf,sizeof(tempbuf));
-					sprintf(tempbuf,"%s=%s\n",strkey,value);
-					fputs(tempbuf,fp);
-					fclose(fp);
-					return 0;
+	// 				}
+	// 			}
+	// 			else
+	// 			{
+	// 				snprintf(tempbuf,100,"[%s]\n", strsection);
+	// 				fputs(tempbuf,fp);
+	// 				bzero(tempbuf,sizeof(tempbuf));
+	// 				sprintf(tempbuf,"%s=%s\n",strkey,value);
+	// 				fputs(tempbuf,fp);
+	// 				fclose(fp);
+	// 				return 0;
 		
-				}
-   	     	}
-			fclose(fp);
-			return 0;
-		}
-	}
+	// 			}
+   	//      	}
+	// 		fclose(fp);
+	// 		return 0;
+	// 	}
+	// }
+	return 0;
 }
 /********************************* 
 * Function Name: lib_file_readcfg
@@ -292,14 +293,17 @@ int lib_file_readcfg(const char *strfilepath,const char *strsection, const char 
 
 	while(!feof(fp))
 	{
-		fgets(tmpbuf,50,fp);
+		if(fgets(tmpbuf,50,fp) <=0)
+			return -1;
+		if(tmpbuf[0] == ' ' || tmpbuf[0] == '#'|| tmpbuf[0] == '/')
+			continue;
 		if(strstr(tmpbuf, strsection) != NULL)
 		{
-
 			memset(tmpbuf, 0 ,sizeof(tmpbuf));
 			while(!feof(fp))
 			{
-				fgets(tmpbuf, 50, fp);
+				if(fgets(tmpbuf,50,fp) <=0)
+					return -1;
   				if(strstr(tmpbuf,strkey) == tmpbuf && (tmpbuf[strlen(strkey)] == '='))
 				{
 					//printf("%s\n",  tmpbuf + strlen(strkey) + 1);

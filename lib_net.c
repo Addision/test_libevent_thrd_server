@@ -50,10 +50,11 @@ int lib_udpclient_init(const char *ipaddr, int port, struct sockaddr_in *serv_ad
 		return sock;
 }
 
-int lib_udp_recv(int sock, void *recvbuf, int len, struct sockaddr *from, int *addrlen)
+int lib_udp_recv(int sock, void *recvbuf, int len, struct sockaddr *from )
 {
 	int ret = 0;
-	if(sock <= 0|| recvbuf == NULL || len <= 0 || from == NULL || addrlen== NULL)
+	socklen_t* addrlen = NULL;
+	if(sock <= 0|| recvbuf == NULL|| from == NULL )
 		return -1;
 	//int recvfrom(int s, void *buf, int len, unsigned int flags, struct sockaddr *from, int *fromlen);
 	ret = recvfrom(sock, recvbuf, len, 0, from, addrlen);
@@ -136,7 +137,7 @@ int lib_tcpclient_connet(int sock, const char *ipaddr, int port)
 int lib_tcpsrv_accept(int listensock, struct sockaddr_in *cli_addr)
 {
 	int cli_sock = 0;
-	int len = sizeof(cli_addr);
+	socklen_t len = sizeof(cli_addr);
 	cli_sock = accept(listensock, (struct sockaddr*)cli_addr, &len);
     //int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
 	return (cli_sock < 0) ? -1 : cli_sock;
